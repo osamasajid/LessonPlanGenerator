@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TutoraHub - AI Lesson Plan Generator</title>
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Marked.js for markdown rendering -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  
+  <style>
+    :root {
+      --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%);
+      --card-bg: rgba(30, 41, 59, 0.7);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --primary-glow: rgba(99, 102, 241, 0.4);
+      --accent: #a855f7;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+      --font-family: 'Inter', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: var(--font-family);
+      background: var(--bg-gradient);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+      overflow-y: auto;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 900px;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+
+    /* Premium Header */
+    header {
+      text-align: center;
+      margin-bottom: 1rem;
+    }
+
+    header h1 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      background: linear-gradient(to right, #818cf8, #c084fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 0.5rem;
+      letter-spacing: -0.025em;
+    }
+
+    header p {
+      color: var(--text-muted);
+      font-size: 1.1rem;
+      font-weight: 400;
+    }
+
+    /* Glassmorphic Card Panel */
+    .panel {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-radius: 1.25rem;
+      padding: 2.5rem;
+      box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5), 
+                  0 1px 1px 0 rgba(255, 255, 255, 0.05) inset;
+      transition: all 0.3s ease;
+    }
+
+    /* Form Styles */
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    @media (max-width: 640px) {
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .form-group.full-width {
+      grid-column: span 2;
+    }
+
+    @media (max-width: 640px) {
+      .form-group.full-width {
+        grid-column: span 1;
+      }
+    }
+
+    label {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-main);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    input, select, textarea {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid var(--card-border);
+      border-radius: 0.5rem;
+      padding: 0.75rem 1rem;
+      color: var(--text-main);
+      font-family: var(--font-family);
+      font-size: 1rem;
+      transition: all 0.2s ease;
+      width: 100%;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-glow);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    select option {
+      background-color: #0f172a;
+      color: var(--text-main);
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      background: var(--primary);
+      color: #fff;
+      border: none;
+      padding: 0.875rem 1.5rem;
+      font-size: 1rem;
+      font-weight: 600;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      box-shadow: 0 4px 12px var(--primary-glow);
+    }
+
+    .btn:hover {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+    }
+
+    .btn:active {
+      transform: translateY(1px);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      border: 1px solid var(--card-border);
+      color: var(--text-main);
+      box-shadow: none;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: var(--text-muted);
+    }
+
+    .btn-full {
+      width: 100%;
+    }
+
+    /* Loader / Processing State */
+    .loader-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1.5rem;
+      padding: 3rem 0;
+      text-align: center;
+    }
+
+    .spinner {
+      position: relative;
+      width: 80px;
+      height: 80px;
+    }
+
+    .spinner-ring {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border: 4px solid transparent;
+      border-top-color: var(--primary);
+      border-right-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 1.2s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+    }
+
+    .spinner-glow {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: var(--primary-glow);
+      filter: blur(15px);
+      opacity: 0.6;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(0.85); opacity: 0.4; }
+      50% { transform: scale(1.15); opacity: 0.8; }
+    }
+
+    .loader-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+
+    .loader-subtitle {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+    }
+
+    /* Tabbed Interface */
+    .tabs-container {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--card-border);
+      gap: 0.5rem;
+    }
+
+    .tab {
+      padding: 0.75rem 1.25rem;
+      cursor: pointer;
+      color: var(--text-muted);
+      font-weight: 500;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .tab:hover {
+      color: var(--text-main);
+    }
+
+    .tab.active {
+      color: var(--primary);
+      border-bottom-color: var(--primary);
+      font-weight: 600;
+    }
+
+    .tab-content {
+      background: rgba(15, 23, 42, 0.4);
+      border: 1px solid var(--card-border);
+      border-radius: 0.75rem;
+      padding: 2rem;
+      max-height: 550px;
+      overflow-y: auto;
+      line-height: 1.6;
+      font-size: 1rem;
+    }
+
+    /* Markdown Render Styling */
+    .markdown-body h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 0.4rem;
+      margin-top: 1.5rem;
+      margin-bottom: 1rem;
+      color: #818cf8;
+    }
+
+    .markdown-body h3 {
+      font-size: 1.2rem;
+      font-weight: 500;
+      margin-top: 1.2rem;
+      margin-bottom: 0.6rem;
+      color: #c084fc;
+    }
+
+    .markdown-body p {
+      margin-bottom: 1rem;
+      color: #e2e8f0;
+    }
+
+    .markdown-body ul, .markdown-body ol {
+      margin-bottom: 1rem;
+      padding-left: 1.5rem;
+    }
+
+    .markdown-body li {
+      margin-bottom: 0.25rem;
+      color: #e2e8f0;
+    }
+
+    .markdown-body strong {
+      color: #fff;
+    }
+
+    .markdown-body blockquote {
+      border-left: 4px solid var(--primary);
+      padding-left: 1rem;
+      color: var(--text-muted);
+      margin: 1rem 0;
+      font-style: italic;
+    }
+
+    .actions-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+      margin-top: 1rem;
+    }
+
+    /* Toast Notification */
+    .toast {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background: var(--success);
+      color: #fff;
+      padding: 0.75rem 1.5rem;
+      border-radius: 0.5rem;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+      font-weight: 500;
+      transform: translateY(100px);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      z-index: 100;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    /* History List Section */
+    .history-section {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .history-title {
+      font-size: 1.25rem;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+    }
+
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .history-item {
+      background: rgba(30, 41, 59, 0.4);
+      border: 1px solid var(--card-border);
+      border-radius: 0.75rem;
+      padding: 1rem 1.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .history-item:hover {
+      background: rgba(30, 41, 59, 0.8);
+      border-color: rgba(99, 102, 241, 0.3);
+      transform: translateX(4px);
+    }
+
+    .history-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+    }
+
+    .history-topic {
+      font-weight: 600;
+      font-size: 1rem;
+    }
+
+    .history-details {
+      font-size: 0.825rem;
+      color: var(--text-muted);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 0.25rem 0.6rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .badge-pending {
+      background: rgba(245, 158, 11, 0.15);
+      color: var(--warning);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .badge-processing {
+      background: rgba(99, 102, 241, 0.15);
+      color: var(--primary);
+      border: 1px solid rgba(99, 102, 241, 0.3);
+    }
+
+    .badge-done {
+      background: rgba(16, 185, 129, 0.15);
+      color: var(--success);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .badge-failed {
+      background: rgba(239, 68, 68, 0.15);
+      color: var(--danger);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .history-action {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .history-view-link {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--primary);
+    }
+
+    .history-view-link:hover {
+      text-decoration: underline;
+    }
+
+    /* Utility Display Classes */
+    .hidden {
+      display: none !important;
+    }
+
+    .error-container {
+      background: rgba(239, 68, 68, 0.1);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 0.5rem;
+      padding: 1rem;
+      color: #fca5a5;
+      font-size: 0.95rem;
+      margin-bottom: 1rem;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    
+    <!-- Top Brand -->
+    <header>
+      <h1>📚 Lesson Plan Architect</h1>
+      <p>Asynchronous multi-agent curriculum and rubric designer</p>
+    </header>
+
+    <!-- Main Workspace Panel -->
+    <div id="workspace-panel" class="panel">
+      
+      <!-- SCREEN 1: Submit Form -->
+      <div id="screen-submit">
+        <div id="form-error" class="error-container hidden"></div>
+        <form id="lesson-form" onsubmit="submitForm(event)">
+          <div class="form-grid">
+            <div class="form-group">
+              <label for="grade">Grade Level</label>
+              <select id="grade" required>
+                <option value="" disabled selected>Select Grade</option>
+                <option value="Grade 1">Grade 1</option>
+                <option value="Grade 2">Grade 2</option>
+                <option value="Grade 3">Grade 3</option>
+                <option value="Grade 4">Grade 4</option>
+                <option value="Grade 5">Grade 5</option>
+                <option value="Grade 6">Grade 6</option>
+                <option value="Grade 7">Grade 7</option>
+                <option value="Grade 8">Grade 8</option>
+                <option value="Grade 9">Grade 9</option>
+                <option value="Grade 10">Grade 10</option>
+                <option value="Grade 11">Grade 11</option>
+                <option value="Grade 12">Grade 12</option>
+              </select>
+            </div>
+            
+            <div class="form-group">
+              <label for="subject">Subject</label>
+              <input type="text" id="subject" placeholder="e.g. Science, Mathematics" required>
+            </div>
+
+            <div class="form-group">
+              <label for="board">Curriculum Board</label>
+              <select id="board" required>
+                <option value="" disabled selected>Select Board</option>
+                <option value="CBSE">CBSE</option>
+                <option value="ICSE">ICSE</option>
+                <option value="IB">IB (International Baccalaureate)</option>
+                <option value="State Board">State Board</option>
+                <option value="General US Common Core">General / US Common Core</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="topic">Topic</label>
+              <input type="text" id="topic" placeholder="e.g. Photosynthesis, Fractions" required>
+            </div>
+
+            <div class="form-group full-width">
+              <label for="methodology">Teaching Methodology (Optional)</label>
+              <input type="text" id="methodology" placeholder="e.g. Inquiry-based learning, Flipped classroom, Direct instruction">
+            </div>
+
+            <div class="form-group full-width">
+              <label for="instructions">Additional Instructions (Optional)</label>
+              <textarea id="instructions" placeholder="e.g. Include a hands-on activity with beans, align to objectives, etc."></textarea>
+            </div>
+          </div>
+          
+          <button type="submit" class="btn btn-full">
+            Generate Lesson Plan
+          </button>
+        </form>
+      </div>
+
+      <!-- SCREEN 2: Loading State -->
+      <div id="screen-loading" class="hidden">
+        <div class="loader-container">
+          <div class="spinner">
+            <div class="spinner-glow"></div>
+            <div class="spinner-ring"></div>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 1rem; width: 100%; max-width: 420px; align-items: center;">
+            <div id="loader-status" class="loader-title">Submitting request...</div>
+            
+            <!-- Progress Bar -->
+            <div style="width: 100%; background: rgba(255,255,255,0.05); height: 8px; border-radius: 9999px; overflow: hidden; border: 1px solid var(--card-border);">
+              <div id="loader-progress-bar" style="width: 5%; height: 100%; background: linear-gradient(to right, var(--primary), var(--accent)); transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1); border-radius: 9999px;"></div>
+            </div>
+            
+            <div id="loader-details" class="loader-subtitle">Preparing input data and contacting agents.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- SCREEN 3: Results Tabs -->
+      <div id="screen-results" class="hidden">
+        <div class="tabs-container">
+          
+          <!-- Observability Dashboard -->
+          <div id="metrics-panel" style="background: rgba(30, 41, 59, 0.45); border: 1px solid var(--card-border); border-radius: 0.75rem; padding: 1.25rem; display: flex; flex-direction: column; gap: 1rem; margin-bottom: 0.5rem; backdrop-filter: blur(8px);">
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--card-border); padding-bottom: 0.5rem;">
+              <span style="font-size: 0.85rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--accent); display: flex; align-items: center; gap: 0.4rem;">
+                ⚡ Observability & LLM Metrics
+              </span>
+              <div id="overall-score-badge" style="display: flex; align-items: center; gap: 0.5rem; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); padding: 0.25rem 0.75rem; border-radius: 9999px; font-size: 0.85rem; font-weight: 700; color: var(--success);">
+                Overall Rating: <span id="metric-overall-score">N/A</span>
+              </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; text-align: center;">
+              <div style="background: rgba(255,255,255,0.02); padding: 0.6rem; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.03);">
+                <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.25rem; letter-spacing: 0.02em;">Total Latency</div>
+                <div id="metric-total-time" style="font-size: 1.15rem; font-weight: 700; color: var(--text-main);">0.0s</div>
+                <div id="metric-time-breakdown" style="font-size: 0.65rem; color: var(--text-muted); margin-top: 0.15rem;">Plan: 0s | Eval: 0s</div>
+              </div>
+              <div style="background: rgba(255,255,255,0.02); padding: 0.6rem; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.03);">
+                <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.25rem; letter-spacing: 0.02em;">Tokens Transferred</div>
+                <div id="metric-total-tokens" style="font-size: 1.15rem; font-weight: 700; color: var(--text-main);">0</div>
+                <div id="metric-token-breakdown" style="font-size: 0.65rem; color: var(--text-muted); margin-top: 0.15rem;">In: 0 | Out: 0</div>
+              </div>
+              <div style="background: rgba(255,255,255,0.02); padding: 0.6rem; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.03);">
+                <div style="font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; margin-bottom: 0.25rem; letter-spacing: 0.02em;">Active Engine</div>
+                <div id="metric-provider" style="font-size: 1.15rem; font-weight: 700; color: var(--primary); text-transform: capitalize;">Ollama</div>
+                <div id="metric-model" style="font-size: 0.65rem; color: var(--text-muted); margin-top: 0.15rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="model">qwen2.5-coder:7b</div>
+              </div>
+            </div>
+
+            <!-- Rubric Score Breakdowns -->
+            <div id="rubric-bars" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; border-top: 1px solid var(--card-border); padding-top: 0.75rem;">
+              <!-- Inserted dynamically -->
+            </div>
+          </div>
+
+          <div class="tabs">
+            <div class="tab active" onclick="switchTab('plan')">📄 Lesson Plan</div>
+            <div class="tab" onclick="switchTab('evaluation')">📊 Rubric Evaluation</div>
+          </div>
+          
+          <div id="plan-tab-content" class="tab-content markdown-body">
+            <!-- Rendered lesson plan markdown -->
+          </div>
+          
+          <div id="evaluation-tab-content" class="tab-content markdown-body hidden">
+            <!-- Rendered evaluation markdown -->
+          </div>
+          
+          <div class="actions-row">
+            <button class="btn btn-secondary" onclick="resetForm()">
+              ← New Plan
+            </button>
+            <button class="btn" onclick="copyActiveContent()">
+              📋 Copy Raw Markdown
+            </button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- History Panel -->
+    <div class="history-section">
+      <div class="history-title">Recent Lesson Requests</div>
+      <div id="history-list" class="history-list">
+        <div style="text-align: center; color: var(--text-muted); padding: 1rem;">
+          No request history. Complete the form above to start generating!
+        </div>
+      </div>
+    </div>
+
+    <!-- System Analytics Panel -->
+    <div class="panel" style="margin-top: 1rem; padding: 1.5rem;">
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--card-border); padding-bottom: 0.5rem; margin-bottom: 1rem;">
+        <span style="font-size: 0.95rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--primary); display: flex; align-items: center; gap: 0.4rem;">
+          📈 System-Wide Latency & Analytics
+        </span>
+        <button class="btn btn-secondary" onclick="fetchSystemMetrics()" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; font-weight: 500;">
+          🔄 Refresh Metrics
+        </button>
+      </div>
+      
+      <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 1rem; text-align: center;">
+        <div style="background: rgba(255,255,255,0.01); padding: 0.75rem; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.02);">
+          <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Total Requests</div>
+          <div id="analytics-total" style="font-size: 1.35rem; font-weight: 700; color: var(--text-main);">0</div>
+        </div>
+        <div style="background: rgba(255,255,255,0.01); padding: 0.75rem; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.02);">
+          <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">Error Rate</div>
+          <div id="analytics-error-rate" style="font-size: 1.35rem; font-weight: 700; color: var(--text-main);">0%</div>
+        </div>
+        <div style="background: rgba(255,255,255,0.01); padding: 0.75rem; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.02);">
+          <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem;">P50 Latency</div>
+          <div id="analytics-p50" style="font-size: 1.35rem; font-weight: 700; color: var(--text-main);">0.0s</div>
+        </div>
+        <div style="background: rgba(255,255,255,0.01); padding: 0.75rem; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.02);">
+          <div style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 0.25rem; color: var(--accent);">P95 Latency</div>
+          <div id="analytics-p95" style="font-size: 1.35rem; font-weight: 700; color: var(--accent);">0.0s</div>
+        </div>
+      </div>
+      
+      <div id="analytics-latency-table" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; border-top: 1px solid var(--card-border); padding-top: 1rem; margin-top: 1rem; font-size: 0.85rem; text-align: left;">
+        <div>
+          <strong style="color: var(--primary);">Overall Duration:</strong><br/>
+          P50: <span id="table-overall-p50">0.0s</span> | P90: <span id="table-overall-p90">0.0s</span> | P95: <span id="table-overall-p95">0.0s</span>
+        </div>
+        <div>
+          <strong style="color: var(--accent);">Step 1 (Plan Gen):</strong><br/>
+          P50: <span id="table-gen-p50">0.0s</span> | P90: <span id="table-gen-p90">0.0s</span> | P95: <span id="table-gen-p95">0.0s</span>
+        </div>
+        <div>
+          <strong style="color: var(--success);">Step 2 (Evaluation):</strong><br/>
+          P50: <span id="table-eval-p50">0.0s</span> | P90: <span id="table-eval-p90">0.0s</span> | P95: <span id="table-eval-p95">0.0s</span>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Toast Element -->
+  <div id="toast" class="toast">Copied markdown to clipboard!</div>
+
+  <script>
+    const API_BASE = "http://localhost:8000/api";
+    let activeTab = "plan"; // "plan" or "evaluation"
+    let pollingInterval = null;
+    let currentRequestId = null;
+    
+    // Raw contents saved for copy-to-clipboard functionality
+    let rawLessonPlan = "";
+    let rawEvaluation = "";
+
+    // On Load
+    document.addEventListener("DOMContentLoaded", () => {
+      fetchHistory();
+      fetchSystemMetrics();
+      // Poll history and metrics every 10 seconds to keep analytics and status fresh
+      setInterval(() => {
+        fetchHistory();
+        fetchSystemMetrics();
+      }, 10000);
+    });
+
+    // Form Submission
+    async function submitForm(event) {
+      event.preventDefault();
+      hideError();
+      
+      const payload = {
+        grade: document.getElementById("grade").value,
+        subject: document.getElementById("subject").value,
+        board: document.getElementById("board").value,
+        topic: document.getElementById("topic").value,
+        methodology: document.getElementById("methodology").value || null,
+        instructions: document.getElementById("instructions").value || null
+      };
+
+      try {
+        const response = await fetch(`${API_BASE}/requests`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(payload)
+        });
+
+        if (!response.ok) {
+          const err = await response.json();
+          throw new Error(err.detail || "Failed to submit request.");
+        }
+
+        const data = await response.json();
+        currentRequestId = data.id;
+        
+        // Show Loading Screen
+        showScreen("loading");
+        
+        // Initialize loading progress state
+        const statusElement = document.getElementById("loader-status");
+        const detailsElement = document.getElementById("loader-details");
+        const progressBar = document.getElementById("loader-progress-bar");
+        if (statusElement) statusElement.textContent = "Initializing Request...";
+        if (detailsElement) detailsElement.textContent = "Sending lesson parameters to the backend queue.";
+        if (progressBar) progressBar.style.width = "5%";
+        
+        // Start Polling
+        startPolling(currentRequestId);
+        fetchHistory();
+        
+      } catch (error) {
+        showError(error.message);
+      }
+    }
+
+    // Polling System
+    function startPolling(id) {
+      if (pollingInterval) clearInterval(pollingInterval);
+      
+      pollingInterval = setInterval(async () => {
+        try {
+          const response = await fetch(`${API_BASE}/requests/${id}`);
+          if (!response.ok) {
+            clearInterval(pollingInterval);
+            throw new Error("Failed to check status.");
+          }
+          
+          const data = await response.json();
+          updateLoadingProgress(data);
+          
+          if (data.status === "done") {
+            clearInterval(pollingInterval);
+            displayResults(data);
+            fetchHistory();
+          } else if (data.status === "failed") {
+            clearInterval(pollingInterval);
+            fetchHistory();
+            showScreen("submit");
+            showError(`Generation failed: ${data.error_message || "Unknown error occurred"}`);
+          }
+          
+        } catch (error) {
+          clearInterval(pollingInterval);
+          showScreen("submit");
+          showError(error.message);
+        }
+      }, 3000);
+    }
+
+    // Update progress bar and details in the UI loader dynamically
+    function updateLoadingProgress(data) {
+      const statusElement = document.getElementById("loader-status");
+      const detailsElement = document.getElementById("loader-details");
+      const progressBar = document.getElementById("loader-progress-bar");
+      
+      if (!statusElement || !progressBar || !detailsElement) return;
+
+      if (data.status === "pending") {
+        statusElement.textContent = "In Queue...";
+        detailsElement.textContent = "Waiting for an agent worker to pick up the task.";
+        progressBar.style.width = "15%";
+      } else if (data.status === "processing") {
+        if (!data.lesson_plan_md) {
+          statusElement.textContent = "Step 1 of 2: Generating Lesson Plan...";
+          detailsElement.textContent = "Our Curriculum Agent is drafting your detailed lesson plan (CBSE/ICSE curriculum aligned).";
+          progressBar.style.width = "45%";
+        } else {
+          statusElement.textContent = "Step 2 of 2: Reviewing & Evaluating...";
+          detailsElement.textContent = "Our Reviewer Agent is running a rubric evaluation and grading the lesson plan criteria.";
+          progressBar.style.width = "80%";
+        }
+      } else if (data.status === "done") {
+        statusElement.textContent = "Generation Complete!";
+        detailsElement.textContent = "Rendering and formatting output.";
+        progressBar.style.width = "100%";
+      } else if (data.status === "failed") {
+        statusElement.textContent = "Failed";
+        detailsElement.textContent = "An error occurred during generation.";
+        progressBar.style.width = "0%";
+      }
+    }
+
+    // Display Results Screen
+    function displayResults(data) {
+      rawLessonPlan = data.lesson_plan_md || "";
+      rawEvaluation = data.evaluation_md || "";
+      
+      document.getElementById("plan-tab-content").innerHTML = marked.parse(rawLessonPlan);
+      document.getElementById("evaluation-tab-content").innerHTML = marked.parse(rawEvaluation);
+      
+      // Update Observability Dashboard Metrics
+      populateMetrics(data);
+      
+      switchTab("plan");
+      showScreen("results");
+    }
+
+    // Populate Observability Metrics
+    function populateMetrics(data) {
+      // Latency Calculations
+      const planTime = data.generation_time_seconds || 0;
+      const evalTime = data.evaluation_time_seconds || 0;
+      const totalTime = planTime + evalTime;
+      
+      document.getElementById("metric-total-time").textContent = `${totalTime.toFixed(1)}s`;
+      document.getElementById("metric-time-breakdown").textContent = `Plan: ${planTime.toFixed(1)}s | Eval: ${evalTime.toFixed(1)}s`;
+      
+      // Token Calculations
+      const planIn = data.plan_input_tokens || 0;
+      const planOut = data.plan_output_tokens || 0;
+      const evalIn = data.eval_input_tokens || 0;
+      const evalOut = data.eval_output_tokens || 0;
+      
+      const totalTokens = planIn + planOut + evalIn + evalOut;
+      document.getElementById("metric-total-tokens").textContent = totalTokens.toLocaleString();
+      document.getElementById("metric-token-breakdown").textContent = `In: ${(planIn + evalIn).toLocaleString()} | Out: ${(planOut + evalOut).toLocaleString()}`;
+      
+      // Active Engine Metadata
+      document.getElementById("metric-provider").textContent = data.provider || "Ollama";
+      const modelEl = document.getElementById("metric-model");
+      modelEl.textContent = data.model_name || "qwen2.5-coder:7b";
+      modelEl.title = data.model_name || "qwen2.5-coder:7b";
+      
+      // Rubric Scores Rendering
+      const scoreOverall = data.score_overall || null;
+      document.getElementById("metric-overall-score").textContent = scoreOverall ? `${scoreOverall.toFixed(1)}/5` : "N/A";
+      
+      const overallBadge = document.getElementById("overall-score-badge");
+      if (scoreOverall) {
+        overallBadge.style.display = "flex";
+      } else {
+        overallBadge.style.display = "none";
+      }
+
+      const rubricContainer = document.getElementById("rubric-bars");
+      const criteriaList = [
+        { name: "Objectives Clarity", score: data.score_clarity },
+        { name: "Curriculum Alignment", score: data.score_alignment },
+        { name: "Pedagogical Structure", score: data.score_structure },
+        { name: "Student Engagement", score: data.score_engagement },
+        { name: "Differentiation Strategies", score: data.score_differentiation },
+        { name: "Assessment Quality", score: data.score_assessment },
+        { name: "Feasibility in Class", score: data.score_feasibility }
+      ];
+
+      // Check if we have scores parsed
+      const hasScores = criteriaList.some(c => c.score !== null);
+      if (hasScores) {
+        rubricContainer.style.display = "grid";
+        rubricContainer.innerHTML = criteriaList.map(c => {
+          const val = c.score || 0;
+          const pct = (val / 5) * 100;
+          let color = "var(--danger)";
+          if (val >= 4) color = "var(--success)";
+          else if (val >= 3) color = "var(--warning)";
+          
+          return `
+            <div style="display: flex; flex-direction: column; gap: 0.25rem;">
+              <div style="display: flex; justify-content: space-between; font-size: 0.775rem; font-weight: 500;">
+                <span style="color: var(--text-muted);">${c.name}</span>
+                <span style="font-weight: 700; color: ${color};">${val > 0 ? val + "/5" : "N/A"}</span>
+              </div>
+              <div style="width: 100%; background: rgba(255,255,255,0.03); height: 5px; border-radius: 9999px; overflow: hidden; border: 1px solid rgba(255,255,255,0.02);">
+                <div style="width: ${pct}%; height: 100%; background: ${color}; border-radius: 9999px;"></div>
+              </div>
+            </div>
+          `;
+        }).join("");
+      } else {
+        rubricContainer.style.display = "none";
+      }
+    }
+
+    // Tab Switching
+    function switchTab(tabName) {
+      activeTab = tabName;
+      const planTab = document.getElementById("plan-tab-content");
+      const evalTab = document.getElementById("evaluation-tab-content");
+      const tabs = document.querySelectorAll(".tab");
+
+      if (tabName === "plan") {
+        planTab.classList.remove("hidden");
+        evalTab.classList.add("hidden");
+        tabs[0].classList.add("active");
+        tabs[1].classList.remove("active");
+      } else {
+        planTab.classList.add("hidden");
+        evalTab.classList.remove("hidden");
+        tabs[0].classList.remove("active");
+        tabs[1].classList.add("active");
+      }
+    }
+
+    // Fetch and Render Request History
+    async function fetchHistory() {
+      try {
+        const response = await fetch(`${API_BASE}/requests?limit=10`);
+        if (!response.ok) return;
+        const requests = await response.json();
+        
+        const historyContainer = document.getElementById("history-list");
+        if (requests.length === 0) {
+          historyContainer.innerHTML = `
+            <div style="text-align: center; color: var(--text-muted); padding: 1rem;">
+              No request history. Complete the form above to start generating!
+            </div>
+          `;
+          return;
+        }
+
+        historyContainer.innerHTML = requests.map(req => {
+          const timestamp = new Date(req.created_at).toLocaleString();
+          let badgeClass = `badge-${req.status}`;
+          let statusText = req.status;
+          
+          const traceLink = req.trace_id 
+            ? `<a href="http://localhost:16686/trace/${req.trace_id}" target="_blank" class="history-view-link" onclick="event.stopPropagation();" style="margin-left: 8px; color: var(--accent); display: inline-flex; align-items: center; gap: 0.2rem;">🔍 Trace</a>`
+            : "";
+          
+          return `
+            <div class="history-item" onclick="loadHistoryItem('${req.id}')">
+              <div class="history-meta">
+                <div class="history-topic">${escapeHtml(req.topic)}</div>
+                <div class="history-details">${escapeHtml(req.grade)} · ${escapeHtml(req.subject)} · ${escapeHtml(req.board)}</div>
+                <div class="history-details" style="font-size: 0.75rem;">Created: ${timestamp}</div>
+              </div>
+              <div class="history-action">
+                <span class="badge ${badgeClass}">${statusText}</span>
+                ${req.status === 'done' ? '<span class="history-view-link">View</span>' : ''}
+                ${traceLink}
+              </div>
+            </div>
+          `;
+        }).join("");
+
+      } catch (error) {
+        console.error("Failed to fetch history:", error);
+      }
+    }
+
+    // Load an historical request into the viewer
+    async function loadHistoryItem(id) {
+      hideError();
+      if (pollingInterval) clearInterval(pollingInterval);
+      
+      try {
+        const response = await fetch(`${API_BASE}/requests/${id}`);
+        if (!response.ok) throw new Error("Failed to load historical record.");
+        const data = await response.json();
+        
+        if (data.status === "done") {
+          displayResults(data);
+        } else if (data.status === "processing" || data.status === "pending") {
+          showScreen("loading");
+          startPolling(id);
+        } else if (data.status === "failed") {
+          showError(`This request failed: ${data.error_message || "Unknown error"}`);
+        }
+      } catch (error) {
+        showError(error.message);
+      }
+    }
+
+    // Copy Raw Markdown to Clipboard
+    function copyActiveContent() {
+      const textToCopy = activeTab === "plan" ? rawLessonPlan : rawEvaluation;
+      if (!textToCopy) return;
+
+      navigator.clipboard.writeText(textToCopy).then(() => {
+        showToast();
+      }).catch(err => {
+        console.error("Failed to copy text: ", err);
+      });
+    }
+
+    // Toast Alert
+    function showToast() {
+      const toast = document.getElementById("toast");
+      toast.classList.add("show");
+      setTimeout(() => {
+        toast.classList.remove("show");
+      }, 3000);
+    }
+
+    // Screen Navigation helpers
+    function showScreen(screen) {
+      document.getElementById("screen-submit").classList.add("hidden");
+      document.getElementById("screen-loading").classList.add("hidden");
+      document.getElementById("screen-results").classList.add("hidden");
+
+      if (screen === "submit") {
+        document.getElementById("screen-submit").classList.remove("hidden");
+      } else if (screen === "loading") {
+        document.getElementById("screen-loading").classList.remove("hidden");
+      } else if (screen === "results") {
+        document.getElementById("screen-results").classList.remove("hidden");
+      }
+    }
+
+    function resetForm() {
+      if (pollingInterval) clearInterval(pollingInterval);
+      document.getElementById("lesson-form").reset();
+      hideError();
+      showScreen("submit");
+    }
+
+    // Error UI Helpers
+    function showError(message) {
+      const err = document.getElementById("form-error");
+      err.textContent = message;
+      err.classList.remove("hidden");
+      err.scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function hideError() {
+      document.getElementById("form-error").classList.add("hidden");
+    }
+
+    async function fetchSystemMetrics() {
+      try {
+        const response = await fetch(`${API_BASE}/metrics`);
+        if (!response.ok) return;
+        const data = await response.json();
+        
+        document.getElementById("analytics-total").textContent = data.total_requests || 0;
+        document.getElementById("analytics-error-rate").textContent = `${(data.error_rate_pct || 0).toFixed(1)}%`;
+        document.getElementById("analytics-p50").textContent = `${(data.overall_p50_seconds || 0).toFixed(1)}s`;
+        document.getElementById("analytics-p95").textContent = `${(data.overall_p95_seconds || 0).toFixed(1)}s`;
+        
+        document.getElementById("table-overall-p50").textContent = `${(data.overall_p50_seconds || 0).toFixed(1)}s`;
+        document.getElementById("table-overall-p90").textContent = `${(data.overall_p90_seconds || 0).toFixed(1)}s`;
+        document.getElementById("table-overall-p95").textContent = `${(data.overall_p95_seconds || 0).toFixed(1)}s`;
+        
+        document.getElementById("table-gen-p50").textContent = `${(data.generation_p50_seconds || 0).toFixed(1)}s`;
+        document.getElementById("table-gen-p90").textContent = `${(data.generation_p90_seconds || 0).toFixed(1)}s`;
+        document.getElementById("table-gen-p95").textContent = `${(data.generation_p95_seconds || 0).toFixed(1)}s`;
+        
+        document.getElementById("table-eval-p50").textContent = `${(data.evaluation_p50_seconds || 0).toFixed(1)}s`;
+        document.getElementById("table-eval-p90").textContent = `${(data.evaluation_p90_seconds || 0).toFixed(1)}s`;
+        document.getElementById("table-eval-p95").textContent = `${(data.evaluation_p95_seconds || 0).toFixed(1)}s`;
+      } catch (error) {
+        console.error("Failed to fetch system metrics:", error);
+      }
+    }
+
+    function escapeHtml(unsafe) {
+      if (!unsafe) return "";
+      return unsafe
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+  </script>
+</body>
+</html>
