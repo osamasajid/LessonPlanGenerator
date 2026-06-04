@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:alpine
+    container_name: lesson-redis
+    ports:
+      - "6379:6379"
+    restart: always
+
+  jaeger:
+    image: jaegertracing/all-in-one:latest
+    container_name: lesson-jaeger
+    ports:
+      - "16686:16686"  # Jaeger Query UI
+      - "4317:4317"    # OTLP gRPC receiver
+    restart: always
+
+  web:
+    build: .
+    container_name: lesson-web
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000
+    volumes:
+      - .:/app
+      - sqlite_data:/data
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:////data/lesson_plans.db
+      - REDIS_URL=redis://redis:6379/0
+      - OLLAMA_URL=http://host.docker.internal:11434
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      - OTEL_SERVICE_NAME=lesson-plan-architect
+    depends_on:
+      - redis
+      - jaeger
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: always
+
+  worker:
+    build: .
+    container_name: lesson-worker
+    command: python -m worker.worker
+    volumes:
+      - .:/app
+      - sqlite_data:/data
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=sqlite+aiosqlite:////data/lesson_plans.db
+      - REDIS_URL=redis://redis:6379/0
+      - OLLAMA_URL=http://host.docker.internal:11434
+      - OTEL_EXPORTER_OTLP_ENDPOINT=http://jaeger:4317
+      - OTEL_SERVICE_NAME=lesson-plan-architect
+    depends_on:
+      - redis
+      - jaeger
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    restart: always
+
+  ui:
+    image: python:3.12-alpine
+    container_name: lesson-ui
+    command: python -m http.server 3000 --directory /ui
+    volumes:
+      - ./ui:/ui
+    ports:
+      - "3000:3000"
+    restart: always
+
+volumes:
+  sqlite_data:
