@@ -42,11 +42,7 @@ There are two ways to boot the application stack: **Option A (Docker Compose)** 
    ```bash
    docker compose up --build
    ```
-3. Open the UI by loading `ui/index.html` in your browser, or serve it:
-   ```bash
-   python -m http.server 3000 --directory ui/
-   ```
-   Then navigate to `http://localhost:3000`.
+3. Open the UI by navigating to `http://localhost:3000`.
 
 ---
 
